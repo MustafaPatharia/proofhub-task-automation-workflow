@@ -185,12 +185,12 @@ Use the ProofHub API to fetch your workflow stages:
 
 ```bash
 curl -H "X-API-Key: YOUR_API_KEY" \
-     https://api.proofhub.com/api/v3/projects/PROJECT_ID/workflows
+     https://api.proofhub.com/api/v3/workflows
 ```
 
-Look for your workflow and note down the stage IDs and names.
+Look for your workflowworkflow_stages and note down the stage IDs and names for the workflow added to you project.
 
-## 📊 Output Example
+## 📊 Sample Output Example
 
 ```
 🚀 ProofHub Task Automation Script
