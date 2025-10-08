@@ -1,0 +1,25 @@
+{
+  "name": "proofhub-task-automation-workflow",
+  "version": "1.0.0",
+  "description": "An automation script which auto moves the task and sub task in respective stages",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "MustafaPatharia",
+  "license": "ISC",
+  "keywords": [
+    "ProofHub",
+    "automation",
+    "task management",
+    "GitHub Actions",
+    "workflow",
+    "parent-subtask",
+    "project management",
+    "task automation",
+    "nodejs",
+    "productivity",
+    "devops"
+  ]
+}

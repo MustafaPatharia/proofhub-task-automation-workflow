@@ -1,0 +1,90 @@
+{
+    "proofhub": {
+        "apiUrl": "https://example.proofhub.com/api/v3",
+        "projectId": "1234567890",
+        "todoListId": "9876543210"
+    },
+    "stages": {
+        "release/dev": {
+            "targetStage": "Development Completed",
+            "targetStageId": 100001
+        },
+        "development": {
+            "targetStage": "QA Testing",
+            "targetStageId": 100002
+        },
+        "staging": {
+            "targetStage": "Staging Review",
+            "targetStageId": 100003
+        },
+        "main": {
+            "targetStage": "All Completed",
+            "targetStageId": 100004
+        }
+    },
+    "stageHierarchy": {
+        "To Do": 1,
+        "In Progress": 2,
+        "Development Completed": 3,
+        "QA Testing": 4,
+        "QA Failed": 5,
+        "Staging Review": 6,
+        "Staging Failed": 7,
+        "Deployed": 9
+    },
+    "parentRules": [
+        {
+            "parentStage": "To Do",
+            "actions": [
+                {
+                    "condition": "some",
+                    "subtaskStage": "Development Completed",
+                    "moveParentTo": "In Progress"
+                },
+                {
+                    "condition": "all",
+                    "subtaskStage": "Development Completed",
+                    "moveParentTo": "Development Completed"
+                },
+                {
+                    "condition": "all",
+                    "subtaskStage": "QA Testing",
+                    "moveParentTo": "QA Testing"
+                }
+            ]
+        },
+        {
+            "parentStage": "QA Failed",
+            "actions": [
+                {
+                    "condition": "some",
+                    "subtaskStage": "QA Testing",
+                    "moveParentTo": "QA Testing"
+                },
+                {
+                    "condition": "all",
+                    "subtaskStage": "QA Testing",
+                    "moveParentTo": "QA Testing"
+                }
+            ]
+        },
+        {
+            "parentStage": "Staging Failed",
+            "actions": [
+                {
+                    "condition": "some",
+                    "subtaskStage": "Staging Review",
+                    "moveParentTo": "Staging Review"
+                },
+                {
+                    "condition": "all",
+                    "subtaskStage": "Staging Review",
+                    "moveParentTo": "Staging Review"
+                }
+            ]
+        }
+    ],
+    "features": {
+        "parentRulesEnabled": true
+    }
+}
