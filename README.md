@@ -1,66 +1,49 @@
-# ProofHub Task Automation Script
+# ProofHub GitHub Integration
 
-Automatically update ProofHub task stages when Pull Requests are merged, with intelligent parent-subtask relationship handling.
+Auto-update ProofHub tasks when you merge PRs. Includes parent-subtask logic that ProofHub doesn't have by default.
 
-## 🚀 Features
+---
 
-- ✅ Automatically updates task stages based on target branch
-- 👨‍👩‍👧‍👦 Intelligent parent-subtask relationship handling
-- 🔒 Forward-only stage movement protection
-- 🎯 Fully customizable via JSON configuration
-- 📊 Detailed execution reporting
-- 🔧 Generic and reusable across projects
+## Why I Made This
 
-## 📋 Prerequisites
+Our team kept forgetting to update ProofHub tasks after merging PRs. With hundreds of tasks, it became a mess to track what's actually done.
 
-- Node.js (v14 or higher)
-- ProofHub account with API access
-- GitHub repository with Actions enabled
+The bigger problem? **ProofHub doesn't handle parent-subtask relationships well.**
 
-## ⚙️ Configuration
+If you've used Jira, you know how parent-child tasks work - when subtasks move, the parent updates automatically. ProofHub doesn't do this. Each task is independent, so:
 
-### 1. config.json File
+- Parent task sits in "To Do" while all subtasks are done
+- No way to see overall progress when multiple devs work on different subtasks
+- You have to manually track and update parent tasks
+- Zero visibility on the top-level status of a feature
 
-This file contains your ProofHub project settings and stage configurations. **Keep this file in your repository** (it doesn't contain sensitive data).
+This was painful as the team grew. So I built this integration to handle it automatically.
 
-#### Configuration Sections:
+---
 
-**`proofhub`**: Your ProofHub project details
-- `apiUrl`: ProofHub API base URL (usually `https://api.proofhub.com` or your custom domain)
-- `projectId`: Your project ID (see "How to Get IDs" section)
-- `todoListId`: Your task list ID
+## What It Does
 
-**`stages`**: Maps Git branches to ProofHub stages
-- Key: Git branch name (e.g., `"development"`, `"main"`, `"release/dev"`)
-- `targetStage`: Name of the ProofHub stage
-- `targetStageId`: ID of the ProofHub stage
+### Automatic Task Updates
+When you merge a PR, tasks mentioned in the PR description automatically move to the correct stage based on the target branch.
 
-**`stageHierarchy`**: Defines stage order for forward-only movement
-- Higher numbers = later stages in workflow
-- Prevents moving tasks backward (e.g., from "QA Testing" to "In Progress")
+- Merge to `development` → tasks move to "In Progress"
+- Merge to `main` → tasks move to "Completed"
+- No more manual updates
 
-**`parentRules`**: Defines how parent tasks should move based on subtask states
-- `parentStage`: The current stage of the parent task
-- `actions`: Array of rules to check
-  - `condition`: `"some"` (at least one subtask) or `"all"` (all subtasks)
-  - `subtaskStage`: The subtask stage to check for
-  - `moveParentTo`: Where to move the parent task
+### Parent-Subtask Logic (The Important Part)
+You can set up custom rules for how parent tasks should behave:
 
-**`features`**: Feature toggles
-- `parentRulesEnabled`: Enable/disable parent-subtask automation
+**Example:**
+- If **some** subtasks reach "Development Completed" → move parent to "In Progress"
+- If **all** subtasks reach "Development Completed" → move parent to "Development Completed"
 
-### 2. Environment Variables (GitHub Secrets)
+It only moves tasks forward (no going backward), so you don't accidentally mess up your workflow.
 
-Set these in your GitHub repository secrets. **These should NEVER be committed to your repository.**
+---
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PROOFHUB_API_KEY` | Your ProofHub API key | ✅ Yes |
-| `TARGET_BRANCH` | Target branch (auto-set by GitHub Actions) | ✅ Yes |
-| `PR_BODY` | PR description content (auto-set by GitHub Actions) | ✅ Yes |
-| `PR_NUMBER` | PR number (auto-set by GitHub Actions) | ✅ Yes |
+## Setup
 
-## 🔧 GitHub Actions Integration
+### 1. Install
 
 Create `.github/workflows/proofhub-automation.yml`:
 
@@ -74,7 +57,6 @@ on:
       - main
       - development
       - staging
-      - 'release/**'
 
 jobs:
   update-tasks:
@@ -102,165 +84,147 @@ jobs:
         run: node proofhub-automation.js
 ```
 
-## 📝 PR Body Format
+### 2. Configure
 
-Tasks must be listed in your PR description under a specific section:
+Create `config.json`:
+
+```json
+{
+  "proofhub": {
+    "apiUrl": "https://api.proofhub.com",
+    "projectId": "your-project-id",
+    "todoListId": "your-todolist-id"
+  },
+  "stages": {
+    "development": {
+      "targetStage": "In Progress",
+      "targetStageId": "12345"
+    },
+    "main": {
+      "targetStage": "Completed",
+      "targetStageId": "67890"
+    }
+  },
+  "stageHierarchy": {
+    "To Do": 1,
+    "In Progress": 2,
+    "Development Completed": 3,
+    "QA Testing": 4,
+    "Completed": 5
+  },
+  "parentRules": [
+    {
+      "parentStage": "To Do",
+      "actions": [
+        {
+          "condition": "some",
+          "subtaskStage": "In Progress",
+          "moveParentTo": "In Progress"
+        },
+        {
+          "condition": "all",
+          "subtaskStage": "Development Completed",
+          "moveParentTo": "Development Completed"
+        }
+      ]
+    }
+  ],
+  "features": {
+    "parentRulesEnabled": true
+  }
+}
+```
+
+### 3. Add GitHub Secret
+
+Go to your repo settings → Secrets → Add `PROOFHUB_API_KEY`
+
+### 4. Format Your PRs
+
+In your PR description, list tasks like this:
 
 ```markdown
 ### 📋 ProofHub Tasks
 
-- #1234567890 - Implement user authentication
-- #9876543210 - Add password validation
+- link of the task
 ```
 
-**Important**:
-- Only added tasks (with) will be processed!
-- Task IDs must be 9+ digits
-- Must include the `### 📋 ProofHub Tasks` header
-
-## 👨‍👩‍👧‍👦 Parent-Subtask Rules
-
-Configure custom rules in `config.json` under `parentRules`:
-
-### Example Rule Structure:
-
-```json
-{
-  "parentStage": "To Do",
-  "actions": [
-    {
-      "condition": "some",
-      "subtaskStage": "Development Completed",
-      "moveParentTo": "In Progress"
-    },
-    {
-      "condition": "all",
-      "subtaskStage": "Development Completed",
-      "moveParentTo": "Completed"
-    }
-  ]
-}
-```
-
-This rule means:
-- **When** parent is in "To Do" stage
-- **If** some subtasks move to "Development Completed" → move parent to "In Progress"
-- **If** all subtasks move to "Development Completed" → move parent to "Development Completed"
-
-### 🔒 Forward-Only Protection
-
-Parents can only move forward in the stage hierarchy defined in `stageHierarchy`.
-
-Example with hierarchy:
-```json
-{
-  "QA Testing": 4,
-  "Staging Review": 6
-}
-```
-
-- ✅ QA Testing → Staging Review (4 → 6, forward)
-- ❌ Staging Review → QA Testing (6 → 4, backward, blocked)
-
-## 🎯 How to Get ProofHub IDs
-
-### 1. Get Your API Key
-1. Log in to ProofHub
-2. Go to **Settings** → **API**
-3. Generate a new API key
-4. Store it in GitHub Secrets as `PROOFHUB_API_KEY`
-
-### 2. Get Project ID
-1. Go to your ProofHub project
-2. Check the URL: `https://your-domain.proofhub.com/projects/1234567890`
-3. The number after `/projects/` is your `projectId`
-
-### 3. Get Todo List ID
-1. Open your task list in ProofHub
-2. Check the URL: `https://your-domain.proofhub.com/projects/xxx/todolists/9876543210`
-3. The number after `/todolists/` is your `todoListId`
-
-### 4. Get Stage IDs
-Use the ProofHub API to fetch your workflow stages:
-
-```bash
-curl -H "X-API-Key: YOUR_API_KEY" \
-     https://api.proofhub.com/api/v3/workflows
-```
-
-Look for your workflowworkflow_stages and note down the stage IDs and names for the workflow added to you project.
-
-## 📊 Sample Output Example
-
-```
-🚀 ProofHub Task Automation Script
-
-📌 Target Branch: development
-🎯 Target Stage: QA Testing
-🆔 PR Number: #42
-
-📋 Found 2 added task(s): 1234567890, 9876543210
-
-✅ Task #1234567890 → "QA Testing" (Direct update from PR)
-✅ Task #9876543210 → "QA Testing" (Direct update from PR)
-
-👨‍👩‍👧‍👦 Processing 1 parent task(s)...
-
-🔍 Processing parent task #1111111111...
-   Parent current stage: To Do
-   Found 2 subtask(s)
-      - Subtask #1234567890: QA Testing
-      - Subtask #9876543210: QA Testing
-✅ Task #1111111111 → "QA Testing" (All subtasks in QA Testing)
-
-============================================================
-📊 EXECUTION SUMMARY
-============================================================
-✅ Tasks updated: 2/2
-👨‍👩‍👧‍👦 Parent tasks updated: 1/1
-============================================================
-```
-
-## 🐛 Troubleshooting
-
-#### Issue: Tasks not updating
-**Solution**:
-1. Verify tasks are added in PR body
-2. Check task IDs are correct (9+ digits)
-3. Ensure PR body contains `### 📋 ProofHub Tasks` section
-4. Verify stage IDs in `config.json` match your ProofHub workflow
-
-#### Issue: Parent task not updating
-**Solution**:
-1. Check `features.parentRulesEnabled` is `true` in `config.json`
-2. Verify parent rules are configured correctly
-3. Ensure subtasks have correct `parent_id` in ProofHub
-4. Review stage hierarchy for forward-only movement
-
-## 📁 Project Structure
-
-```
-your-repo/
-├── .github/
-│   └── scripts/
-│       └── config.json              # Your configuration
-│       └── proofhub-automation.js   # Main script
-│   └── workflows/
-│       └── proofhub-automation.yml
-├── .env                    # Local testing only (gitignored)
-├── .gitignore              # Ignore .env file
-├── indes.js                # starting point
-├── package.json
-└── README.md
-```
-## 📄 License
-
-MIT License - feel free to use and modify for your projects!
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
+That's it.
 
 ---
 
-**Made with ❤️ for better project management automation**
+## How to Get ProofHub Task Links
+
+**API Key:**
+ProofHub → Settings → API → Generate key
+
+**Project ID:**
+Open your project, check URL: `proofhub.com/projects/1234567890`
+
+**Todo List ID:**
+Open task list, check URL: `proofhub.com/projects/xxx/todolists/9876543210`
+
+**Copy Task Link:**
+![task link](SS_Safari_20251010093630@2x.png)
+
+**Stage IDs:**
+```bash
+curl -H "X-API-Key: YOUR_KEY" https://api.proofhub.com/api/v3/workflows
+```
+
+Look for your workflow stages and grab the IDs.
+
+---
+
+## What You'll See
+
+When a PR merges, you'll get output like:
+
+```
+🚀 ProofHub Task Automation
+
+Target Branch: development
+Target Stage: In Progress
+
+Found 2 tasks: 1234567890, 9876543210
+
+✅ Task #1234567890 → "In Progress"
+✅ Task #9876543210 → "In Progress"
+
+Processing 1 parent task...
+
+✅ Task #1111111111 → "In Progress" (Some subtasks moved)
+
+Summary: 2 tasks updated, 1 parent updated
+```
+
+---
+
+## Troubleshooting
+
+**Tasks not updating?**
+- Check task IDs are correct (9+ digits)
+- Make sure you have the `### 📋 ProofHub Tasks` header
+- Verify stage IDs in config match your ProofHub workflow
+
+**Parent not updating?**
+- Set `parentRulesEnabled: true` in config
+- Check subtasks have the correct parent_id in ProofHub
+- Make sure stage hierarchy is set correctly
+
+---
+
+## Files
+
+```
+.github/
+  └── workflows/
+      └── proofhub-automation.yml
+  └── scripts/
+      └── proofhub-automation.js
+      └── config.json
+```
+
+---
+
+If this helps you, give it a star ⭐

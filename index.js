@@ -75,7 +75,7 @@ function extractTaskIds(prBody) {
     if (!sectionMatch) return [];
 
     const sectionContent = sectionMatch[1];
-    const taskPattern = /#(\d{9,})/g;
+    const taskPattern = /task-(\d{9,})/g;
 
     let match;
     while ((match = taskPattern.exec(sectionContent)) !== null) {
