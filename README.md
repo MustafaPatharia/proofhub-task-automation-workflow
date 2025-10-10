@@ -165,7 +165,7 @@ Open your project, check URL: `proofhub.com/projects/1234567890`
 Open task list, check URL: `proofhub.com/projects/xxx/todolists/9876543210`
 
 **Copy Task Link:**
-![task link](SS_Safari_20251010093630@2x.png)
+![task link](SS_Safari_20251010094148@2x.png)
 
 **Stage IDs:**
 ```bash
